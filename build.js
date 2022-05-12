@@ -1253,12 +1253,13 @@ Chicken.STATE_DEAD = 3;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ASSET_MANIFEST = exports.LANE_THREE_Y = exports.LEVEL_GEN_START = exports.CHICKEN_START_X = exports.CHICKEN_START_Y = exports.STARTING_CAR_SPEED = exports.CHICKEN_SPEED = exports.FRAME_RATE = exports.STAGE_HEIGHT = exports.STAGE_WIDTH = void 0;
+exports.ASSET_MANIFEST = exports.LANE_THREE_Y = exports.LEVEL_GEN_START = exports.CHICKEN_START_X = exports.CHICKEN_START_Y = exports.CAR_SPEED_INCREASE = exports.STARTING_CAR_SPEED = exports.CHICKEN_SPEED = exports.FRAME_RATE = exports.STAGE_HEIGHT = exports.STAGE_WIDTH = void 0;
 exports.STAGE_WIDTH = 510;
 exports.STAGE_HEIGHT = 600;
 exports.FRAME_RATE = 30;
 exports.CHICKEN_SPEED = 2.5;
 exports.STARTING_CAR_SPEED = 4.75;
+exports.CAR_SPEED_INCREASE = 0.5;
 exports.CHICKEN_START_Y = 575;
 exports.CHICKEN_START_X = 250;
 exports.LEVEL_GEN_START = 480;
@@ -1299,6 +1300,49 @@ exports.ASSET_MANIFEST = [
 
 /***/ }),
 
+/***/ "./src/Corn1Up.ts":
+/*!************************!*\
+  !*** ./src/Corn1Up.ts ***!
+  \************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Corn1Up = void 0;
+const Toolkit_1 = __webpack_require__(/*! ./Toolkit */ "./src/Toolkit.ts");
+class Corn1Up {
+    constructor(stage, assetManager, chicken) {
+        this.stage = stage;
+        this.chicken = chicken;
+        this._sprite = assetManager.getSprite("sprites", "GameObjects/1Up", -15, -15);
+        this.width = this._sprite.getBounds().width;
+        this.lifeIncriment = new createjs.Event("lifeIncriment", true, false);
+        this.stage.addChild(this._sprite);
+    }
+    positionMe() {
+        this._sprite.x = (0, Toolkit_1.randomMe)(10, 480);
+        this._sprite.y = (0, Toolkit_1.randomMe)(96, 384);
+    }
+    new1Up() {
+        this.stage.addChild(this._sprite);
+        this.positionMe();
+    }
+    update() {
+        if ((0, Toolkit_1.boxHit)(this._sprite, this.chicken.sprite)) {
+            this.stage.removeChild(this._sprite);
+            this._sprite.x = -15;
+            this._sprite.y = -15;
+            this.stage.dispatchEvent("lifeIncriment");
+            console.log("1Up get");
+        }
+    }
+}
+exports.Corn1Up = Corn1Up;
+
+
+/***/ }),
+
 /***/ "./src/Game.ts":
 /*!*********************!*\
   !*** ./src/Game.ts ***!
@@ -1316,6 +1360,7 @@ const Nest_1 = __webpack_require__(/*! ./Nest */ "./src/Nest.ts");
 const UserInterface_1 = __webpack_require__(/*! ./UserInterface */ "./src/UserInterface.ts");
 const ScreenManager_1 = __webpack_require__(/*! ./ScreenManager */ "./src/ScreenManager.ts");
 const LevelGeneration_1 = __webpack_require__(/*! ./LevelGeneration */ "./src/LevelGeneration.ts");
+const Corn1Up_1 = __webpack_require__(/*! ./Corn1Up */ "./src/Corn1Up.ts");
 let stage;
 let canvas;
 let assetManager;
@@ -1328,6 +1373,7 @@ let sportsCar;
 let sedan;
 let police;
 let nest;
+let corn;
 let screenManager;
 let levelGeneration;
 let userInterface;
@@ -1359,14 +1405,16 @@ function onReady(e) {
     console.log(">> spritesheet loaded – ready to add sprites to game");
     chicken = new Chicken_1.Chicken(stage, assetManager);
     userInterface = new UserInterface_1.UserInterface(stage, assetManager);
-    levelGeneration = new LevelGeneration_1.LevelGeneration(stage, assetManager, chicken, sportsCar, police, sedan);
     nest = new Nest_1.Nest(stage, assetManager, chicken);
+    corn = new Corn1Up_1.Corn1Up(stage, assetManager, chicken);
+    levelGeneration = new LevelGeneration_1.LevelGeneration(stage, assetManager, chicken, sportsCar, police, sedan, nest, corn);
     screenManager = new ScreenManager_1.ScreenManager(stage, assetManager, levelGeneration);
     screenManager.showMainMenu();
     stage.on("nestReached", onGameEvent);
     stage.on("lifeDecrement", onGameEvent);
     stage.on("newLevel", onGameEvent);
     stage.on("gameReset", onGameEvent);
+    stage.on("lifeIncriment", onGameEvent);
     document.onkeydown = onKeyDown;
     document.onkeyup = onKeyUp;
     createjs.Ticker.framerate = Constants_1.FRAME_RATE;
@@ -1378,6 +1426,7 @@ function onReady(e) {
                 levelsCleared++;
                 userInterface.clears = levelsCleared;
                 levelGeneration.genLevels();
+                corn.new1Up();
                 console.log("levelsClears: " + levelsCleared);
                 break;
             case "lifeDecrement":
@@ -1390,12 +1439,19 @@ function onReady(e) {
                 }
                 break;
             case "lifeIncriment":
+                if (lives < 3) {
+                    lives++;
+                    userInterface.life = lives;
+                    userInterface.addLivesUI();
+                }
+                console.log("Lives: " + lives);
                 break;
             case "gameReset":
                 userInterface.resetMe();
                 chicken.stageClear();
                 levelGeneration.reset();
                 lives = 3;
+                levelGeneration.carSpeed = Constants_1.STARTING_CAR_SPEED;
                 console.log("reset succsessfully");
                 console.log("Lives: " + lives);
                 break;
@@ -1411,6 +1467,7 @@ function onTick(e) {
     levelGeneration.update();
     nest.update();
     userInterface.update();
+    corn.update();
     stage.update();
 }
 function onKeyDown(e) {
@@ -1465,14 +1522,17 @@ const PoliceCar_1 = __webpack_require__(/*! ./PoliceCar */ "./src/PoliceCar.ts")
 const Sedan_1 = __webpack_require__(/*! ./Sedan */ "./src/Sedan.ts");
 const Constants_1 = __webpack_require__(/*! ./Constants */ "./src/Constants.ts");
 class LevelGeneration {
-    constructor(stage, assetManager, chicken, sportsCar, police, sedan) {
+    constructor(stage, assetManager, chicken, sportsCar, police, sedan, nest, corn) {
         this.carArray = [];
         this.yValue = 96;
+        this.carSpeedBonus = 5;
         this.stage = stage;
         this.chicken = chicken;
         this.sportsCar = sportsCar;
         this.police = police;
         this.sedan = sedan;
+        this.nest = nest;
+        this.corn = corn;
         this.assetManager = assetManager;
         this.levelOne = new createjs.Container;
         this.startLane = assetManager.getSprite("sprites", "Land Tiles/Dirt_M", 0, 576);
@@ -1489,44 +1549,54 @@ class LevelGeneration {
         this.levelOne.addChild(this.laneFive);
         this.laneSix = assetManager.getSprite("sprites", "Land Tiles/Grass_LG", 0, 0);
         this.levelOne.addChild(this.laneSix);
-        for (let i = 0; i < 9; i++) {
-            let carType = (0, Toolkit_1.randomMe)(1, 3);
-            if (carType == 1) {
-                this.carArray.push(this.sportsCar = new SportsCar_1.SportsCar(this.stage, this.assetManager, this.chicken, this.yValue));
-                this.sportsCar.positionMe();
-                this.levelOne.addChild(this.sportsCar.sprite);
-            }
-            else if (carType == 2) {
-                this.carArray.push(this.sedan = new Sedan_1.Sedan(this.stage, this.assetManager, this.chicken, this.yValue));
-                this.sedan.positionMe();
-                this.levelOne.addChild(this.sedan.sprite);
-            }
-            else {
-                this.carArray.push(this.police = new PoliceCar_1.PoliceCar(this.stage, this.assetManager, this.chicken, this.yValue));
-                this.police.positionMe();
-                this.levelOne.addChild(this.police.sprite);
-            }
-            if (this.yValue == 158)
-                this.yValue = 261;
-            this.yValue = this.yValue + 31;
-        }
+        this.levelTwo = new createjs.Container;
+        this.levelThree = new createjs.Container;
+    }
+    get carSpeed() {
+        return this.carSpeedBonus;
+    }
+    set carSpeed(value) {
+        this.carSpeedBonus = value;
     }
     genLevels() {
         this.clearLevel();
         let levelType = 1;
-        this.yValue = 96;
         if (levelType == 1) {
             this.stage.addChildAt(this.levelOne, 0);
+            this.yValue = 96;
+            for (let i = 0; i < 9; i++) {
+                let carType = (0, Toolkit_1.randomMe)(1, 3);
+                if (carType == 1) {
+                    this.carArray.push(this.sportsCar = new SportsCar_1.SportsCar(this.stage, this.assetManager, this.chicken, this.yValue));
+                    this.sportsCar.positionMe();
+                    this.levelOne.addChild(this.sportsCar.sprite);
+                }
+                else if (carType == 2) {
+                    this.carArray.push(this.sedan = new Sedan_1.Sedan(this.stage, this.assetManager, this.chicken, this.yValue));
+                    this.sedan.positionMe();
+                    this.levelOne.addChild(this.sedan.sprite);
+                }
+                else {
+                    this.carArray.push(this.police = new PoliceCar_1.PoliceCar(this.stage, this.assetManager, this.chicken, this.yValue));
+                    this.police.positionMe();
+                    this.levelOne.addChild(this.police.sprite);
+                }
+                if (this.yValue == 158)
+                    this.yValue = 261;
+                this.yValue = this.yValue + 31;
+            }
         }
         else if (levelType == 2) {
         }
         else if (levelType == 3) {
         }
         for (let i = 0; i < this.carArray.length; i++) {
-            this.carArray[i].speed = this.carArray[i].speed + 0.25;
+            this.carArray[i].speed = this.carSpeedBonus + Constants_1.CAR_SPEED_INCREASE;
         }
         console.log("level " + levelType);
         console.log("Speed: " + this.carArray[1].speed);
+        this.nest.positiionMe();
+        this.corn.positionMe();
     }
     update() {
         for (let car of this.carArray) {
@@ -1537,11 +1607,19 @@ class LevelGeneration {
         this.stage.removeChild(this.levelOne);
         this.stage.removeChild(this.levelTwo);
         this.stage.removeChild(this.levelThree);
+        for (let i = 0; i < this.carArray.length; i++) {
+            this.carSpeedBonus = this.carArray[1].speed;
+            this.levelOne.removeChild(this.carArray[i].sprite);
+            this.levelTwo.removeChild(this.carArray[i].sprite);
+            this.levelThree.removeChild(this.carArray[i].sprite);
+        }
+        this.carArray = [];
     }
     reset() {
         for (let i = 0; i < this.carArray.length; i++) {
             this.carArray[i].speed = Constants_1.STARTING_CAR_SPEED;
         }
+        console.log("Level Rest");
     }
 }
 exports.LevelGeneration = LevelGeneration;
@@ -1563,10 +1641,14 @@ const Toolkit_1 = __webpack_require__(/*! ./Toolkit */ "./src/Toolkit.ts");
 class Nest {
     constructor(stage, assetManager, chicken) {
         this.chicken = chicken;
-        this._sprite = assetManager.getSprite("sprites", "GameObjects/Nest", (0, Toolkit_1.randomMe)(10, 490), 70);
+        this._sprite = assetManager.getSprite("sprites", "GameObjects/Nest", -20, -20);
         this.width = this._sprite.getBounds().width;
         this.nestReached = new createjs.Event("nestReached", true, false);
         stage.addChild(this._sprite);
+    }
+    positiionMe() {
+        this._sprite.y = 70;
+        this._sprite.x = (0, Toolkit_1.randomMe)(10, 480);
     }
     update() {
         if ((0, Toolkit_1.boxHit)(this._sprite, this.chicken.sprite)) {
@@ -1835,6 +1917,8 @@ class UserInterface {
     resetMe() {
         this.clearsCount = 0;
         this.lives = 3;
+        this.clearsCount = 0;
+        this.clearsText.text = String(this.clearsCount);
         this.stage.addChild(this.lifeCounter1);
         this.stage.addChild(this.lifeCounter2);
         this.stage.addChild(this.lifeCounter3);
@@ -1848,6 +1932,16 @@ class UserInterface {
         }
         else if (this.lives == 0) {
             this.stage.removeChild(this.lifeCounter1);
+        }
+        else if (this.lives > 3)
+            this.lives = 3;
+    }
+    addLivesUI() {
+        if (this.lives == 2) {
+            this.stage.addChild(this.lifeCounter3);
+        }
+        else if (this.lives == 1) {
+            this.stage.addChild(this.lifeCounter2);
         }
     }
 }
@@ -4187,7 +4281,7 @@ module.exports.formatError = function (err) {
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	(() => {
-/******/ 		__webpack_require__.h = () => ("99353bae8cf3704af9f4")
+/******/ 		__webpack_require__.h = () => ("b25aa8f02e5d54cdc1c7")
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/global */
