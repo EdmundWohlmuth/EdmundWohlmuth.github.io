@@ -1399,8 +1399,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CountDown = void 0;
 const Constants_1 = __webpack_require__(/*! ./Constants */ "./src/Constants.ts");
 class CountDown {
-    constructor(stage, assetManager) {
+    constructor(stage, assetManager, screenManager) {
         this._seconds = Constants_1.COUNTDOWN_TIME;
+        this.screenManager = screenManager;
         this.timerText = new createjs.BitmapText("150", assetManager.getSpriteSheet("glyphs"));
         this.timerText.x = 60;
         this.timerText.y = 45;
@@ -1417,7 +1418,7 @@ class CountDown {
     start(startingSeconds) {
         this._seconds = startingSeconds;
         this.timer = window.setInterval(() => {
-            if (this._seconds > 0) {
+            if (this._seconds > 0 && !this.screenManager.inMenuBool) {
                 this._seconds--;
                 console.log("Count down: " + this._seconds);
                 this.timerText.text = String(this._seconds);
@@ -1497,14 +1498,15 @@ function monitorKeys() {
 }
 function onReady(e) {
     console.log(">> spritesheet loaded – ready to add sprites to game");
-    countDown = new CountDown_1.CountDown(stage, assetManager);
     chicken = new Chicken_1.Chicken(stage, assetManager);
     nest = new Nest_1.Nest(stage, assetManager, chicken);
     corn = new Corn1Up_1.Corn1Up(stage, assetManager, chicken);
     levelGeneration = new LevelGeneration_1.LevelGeneration(stage, assetManager, chicken, sportsCar, police, sedan, nest, corn, train);
     screenManager = new ScreenManager_1.ScreenManager(stage, assetManager, levelGeneration, countDown);
-    userInterface = new UserInterface_1.UserInterface(stage, assetManager, countDown);
+    countDown = new CountDown_1.CountDown(stage, assetManager, screenManager);
+    userInterface = new UserInterface_1.UserInterface(stage, assetManager);
     screenManager.showMainMenu();
+    countDown.start(Constants_1.COUNTDOWN_TIME);
     stage.on("nestReached", onGameEvent);
     stage.on("lifeDecrement", onGameEvent);
     stage.on("newLevel", onGameEvent);
@@ -2170,13 +2172,12 @@ exports.PoliceCar = PoliceCar;
 /*!******************************!*\
   !*** ./src/ScreenManager.ts ***!
   \******************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ScreenManager = void 0;
-const Constants_1 = __webpack_require__(/*! ./Constants */ "./src/Constants.ts");
 class ScreenManager {
     constructor(stage, assetManager, levelgen, countDown) {
         this.stage = stage;
@@ -2213,7 +2214,6 @@ class ScreenManager {
             this.hideAll();
             this.levelGen.genLevels();
             this.inMenu = false;
-            this._countDown.start(Constants_1.COUNTDOWN_TIME);
         }, this, true);
         this.instructionsButton.on("click", (e) => {
             this.hideAll();
@@ -2474,7 +2474,7 @@ exports.Tree = Tree;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UserInterface = void 0;
 class UserInterface {
-    constructor(stage, assetManager, countDown) {
+    constructor(stage, assetManager) {
         this.lives = 3;
         this.stage = stage;
         this.assetManager = assetManager;
@@ -4873,7 +4873,7 @@ module.exports.formatError = function (err) {
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	(() => {
-/******/ 		__webpack_require__.h = () => ("8fb440858f9ad49df354")
+/******/ 		__webpack_require__.h = () => ("d8be6e0768038570ffa8")
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/global */
