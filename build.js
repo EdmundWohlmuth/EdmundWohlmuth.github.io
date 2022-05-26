@@ -1243,6 +1243,7 @@ class Chicken {
                 if (sprite.x > (Constants_1.STAGE_WIDTH - this.width)) {
                     sprite.x = (Constants_1.STAGE_WIDTH - this.width);
                 }
+                console.log(this.width);
             }
             else if (this._direction == Chicken.UP) {
                 sprite.y = sprite.y - this._speed;
@@ -1253,6 +1254,7 @@ class Chicken {
                 if (sprite.y < 0) {
                     sprite.y = 0;
                 }
+                console.log(this.width);
             }
             else if (this._direction == Chicken.DOWN) {
                 sprite.y = sprite.y + this._speed;
@@ -1263,6 +1265,7 @@ class Chicken {
                 if (sprite.y > (Constants_1.STAGE_HEIGHT - this.width)) {
                     sprite.y = (Constants_1.STAGE_HEIGHT - this.width);
                 }
+                console.log(this.width);
             }
         }
     }
@@ -1270,6 +1273,9 @@ class Chicken {
         let sprite = this._sprite;
         sprite.x = Constants_1.CHICKEN_START_X;
         sprite.y = Constants_1.CHICKEN_START_Y;
+        this.stage.removeChild(this._deadSprite);
+    }
+    hideCookedChocken() {
         this.stage.removeChild(this._deadSprite);
     }
 }
@@ -1381,6 +1387,10 @@ class Corn1Up {
             console.log("1Up get");
         }
     }
+    hideMe() {
+        this._sprite.x = -10;
+        this._sprite.y = -10;
+    }
 }
 exports.Corn1Up = Corn1Up;
 
@@ -1403,7 +1413,7 @@ class CountDown {
         this._seconds = Constants_1.COUNTDOWN_TIME;
         this.screenManager = screenManager;
         this.timerText = new createjs.BitmapText("150", assetManager.getSpriteSheet("glyphs"));
-        this.timerText.x = 60;
+        this.timerText.x = 150;
         this.timerText.y = 45;
         this.timerText.letterSpacing = 1.5;
         stage.addChild(this.timerText);
@@ -1420,7 +1430,6 @@ class CountDown {
         this.timer = window.setInterval(() => {
             if (this._seconds > 0 && !this.screenManager.inMenuBool) {
                 this._seconds--;
-                console.log("Count down: " + this._seconds);
                 this.timerText.text = String(this._seconds);
             }
         }, 1000);
@@ -1467,6 +1476,7 @@ let police;
 let nest;
 let corn;
 let train;
+let stopLight;
 let screenManager;
 let levelGeneration;
 let userInterface;
@@ -1501,7 +1511,7 @@ function onReady(e) {
     chicken = new Chicken_1.Chicken(stage, assetManager);
     nest = new Nest_1.Nest(stage, assetManager, chicken);
     corn = new Corn1Up_1.Corn1Up(stage, assetManager, chicken);
-    levelGeneration = new LevelGeneration_1.LevelGeneration(stage, assetManager, chicken, sportsCar, police, sedan, nest, corn, train);
+    levelGeneration = new LevelGeneration_1.LevelGeneration(stage, assetManager, chicken, sportsCar, police, sedan, nest, corn, train, stopLight);
     screenManager = new ScreenManager_1.ScreenManager(stage, assetManager, levelGeneration, countDown);
     countDown = new CountDown_1.CountDown(stage, assetManager, screenManager);
     userInterface = new UserInterface_1.UserInterface(stage, assetManager);
@@ -1531,6 +1541,9 @@ function onReady(e) {
                 userInterface.life = lives;
                 if (lives < 1) {
                     screenManager.showGameOver();
+                    corn.hideMe();
+                    nest.hideMe();
+                    chicken.stageClear();
                 }
                 if (pointsGained > 15) {
                     pointsGained = pointsGained - 15;
@@ -1669,8 +1682,9 @@ const NormalRock_1 = __webpack_require__(/*! ./NormalRock */ "./src/NormalRock.t
 const Tree_1 = __webpack_require__(/*! ./Tree */ "./src/Tree.ts");
 const Bush_1 = __webpack_require__(/*! ./Bush */ "./src/Bush.ts");
 const Train_1 = __webpack_require__(/*! ./Train */ "./src/Train.ts");
+const StopLight_1 = __webpack_require__(/*! ./StopLight */ "./src/StopLight.ts");
 class LevelGeneration {
-    constructor(stage, assetManager, chicken, sportsCar, police, sedan, nest, corn, train) {
+    constructor(stage, assetManager, chicken, sportsCar, police, sedan, nest, corn, train, stopLight) {
         this.carArray = [];
         this.obstacleArray = [];
         this.yValue = 96;
@@ -1683,6 +1697,7 @@ class LevelGeneration {
         this.nest = nest;
         this.corn = corn;
         this.train = train;
+        this.stopLight = stopLight;
         this.assetManager = assetManager;
         this.levelOne = new createjs.Container;
         this.startLane = assetManager.getSprite("sprites", "Land Tiles/Dirt_M", 0, 576);
@@ -1764,16 +1779,19 @@ class LevelGeneration {
                 if (carType == 1) {
                     this.carArray.push(this.sportsCar = new SportsCar_1.SportsCar(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.sportsCar.positionMe();
+                    this.sportsCar.speed = this.carSpeed + 1;
                     this.levelOne.addChild(this.sportsCar.sprite);
                 }
                 else if (carType == 2) {
                     this.carArray.push(this.sedan = new Sedan_1.Sedan(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.sedan.positionMe();
+                    this.sedan.speed = this.carSpeed - 1;
                     this.levelOne.addChild(this.sedan.sprite);
                 }
                 else {
                     this.carArray.push(this.police = new PoliceCar_1.PoliceCar(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.police.positionMe();
+                    this.police.speed = this.carSpeed + 0.5;
                     this.levelOne.addChild(this.police.sprite);
                 }
                 if (this.yValue == 158)
@@ -1784,7 +1802,7 @@ class LevelGeneration {
                 let obstacleType = (0, Toolkit_1.randomMe)(1, 4);
                 let newYPos = (0, Toolkit_1.randomMe)(1, 2);
                 if (newYPos == 1)
-                    this.yValue = (0, Toolkit_1.randomMe)(480, 520);
+                    this.yValue = (0, Toolkit_1.randomMe)(480, 510);
                 else if (newYPos == 2)
                     this.yValue = (0, Toolkit_1.randomMe)(192, 220);
                 if (obstacleType == 1) {
@@ -1817,16 +1835,19 @@ class LevelGeneration {
                 if (carType == 1) {
                     this.carArray.push(this.sportsCar = new SportsCar_1.SportsCar(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.sportsCar.positionMe();
+                    this.sportsCar.speed = this.carSpeed + 1;
                     this.levelTwo.addChild(this.sportsCar.sprite);
                 }
                 else if (carType == 2) {
                     this.carArray.push(this.sedan = new Sedan_1.Sedan(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.sedan.positionMe();
+                    this.sedan.speed = this.carSpeed - 1;
                     this.levelTwo.addChild(this.sedan.sprite);
                 }
                 else {
                     this.carArray.push(this.police = new PoliceCar_1.PoliceCar(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.police.positionMe();
+                    this.police.speed = this.carSpeed + 0.5;
                     this.levelTwo.addChild(this.police.sprite);
                 }
                 if (this.yValue == 158)
@@ -1872,16 +1893,19 @@ class LevelGeneration {
                 if (carType == 1) {
                     this.carArray.push(this.sportsCar = new SportsCar_1.SportsCar(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.sportsCar.positionMe();
+                    this.sportsCar.speed = this.carSpeed + 1;
                     this.levelThree.addChild(this.sportsCar.sprite);
                 }
                 else if (carType == 2) {
                     this.carArray.push(this.sedan = new Sedan_1.Sedan(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.sedan.positionMe();
+                    this.sedan.speed = this.carSpeed - 1;
                     this.levelThree.addChild(this.sedan.sprite);
                 }
                 else {
                     this.carArray.push(this.police = new PoliceCar_1.PoliceCar(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.police.positionMe();
+                    this.police.speed = this.carSpeed + 0.5;
                     this.levelThree.addChild(this.police.sprite);
                 }
                 this.yValue = this.yValue + 31;
@@ -1923,16 +1947,19 @@ class LevelGeneration {
                 if (carType == 1) {
                     this.carArray.push(this.sportsCar = new SportsCar_1.SportsCar(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.sportsCar.positionMe();
+                    this.sportsCar.speed = this.carSpeed + 1;
                     this.levelFour.addChild(this.sportsCar.sprite);
                 }
                 else if (carType == 2) {
                     this.carArray.push(this.sedan = new Sedan_1.Sedan(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.sedan.positionMe();
+                    this.sedan.speed = this.carSpeed - 1;
                     this.levelFour.addChild(this.sedan.sprite);
                 }
                 else {
                     this.carArray.push(this.police = new PoliceCar_1.PoliceCar(this.stage, this.assetManager, this.chicken, this.yValue));
                     this.police.positionMe();
+                    this.police.speed = this.carSpeed + 0.5;
                     this.levelFour.addChild(this.police.sprite);
                 }
                 if (this.yValue == 158)
@@ -1945,7 +1972,7 @@ class LevelGeneration {
                 let obstacleType = (0, Toolkit_1.randomMe)(1, 4);
                 let newYPos = (0, Toolkit_1.randomMe)(1, 2);
                 if (newYPos == 1)
-                    this.yValue = (0, Toolkit_1.randomMe)(480, 520);
+                    this.yValue = (0, Toolkit_1.randomMe)(480, 510);
                 else if (newYPos == 2)
                     this.yValue = (0, Toolkit_1.randomMe)(192, 220);
                 if (obstacleType == 1) {
@@ -1972,12 +1999,9 @@ class LevelGeneration {
             this.train = new Train_1.Train(this.stage, this.assetManager, this.chicken);
             this.train.positionMe();
             this.levelFour.addChild(this.train.sprite);
+            this.stopLight = new StopLight_1.StopLight(this.stage, this.assetManager, this.train);
+            this.levelFour.addChild(this.stopLight.sprite);
         }
-        for (let i = 0; i < this.carArray.length; i++) {
-            this.carArray[i].speed = this.carSpeedBonus + Constants_1.CAR_SPEED_INCREASE;
-        }
-        console.log("level " + this.levelType);
-        console.log("Speed: " + this.carArray[1].speed);
         this.nest.positiionMe();
         this.corn.positionMe();
     }
@@ -1988,10 +2012,16 @@ class LevelGeneration {
         for (let obstacle of this.obstacleArray) {
             obstacle.update();
         }
-        if (this.levelType == 4)
+        if (this.levelType == 4) {
             this.train.update();
+            this.stopLight.SwitchStates();
+        }
     }
     clearLevel() {
+        for (let i = 0; i < this.carArray.length; i++) {
+            this.carArray[i].speed = this.carSpeedBonus + Constants_1.CAR_SPEED_INCREASE;
+            console.log("Speed: " + this.carArray[1].speed);
+        }
         this.stage.removeChild(this.levelOne);
         this.stage.removeChild(this.levelTwo);
         this.stage.removeChild(this.levelThree);
@@ -2009,8 +2039,10 @@ class LevelGeneration {
             this.levelThree.removeChild(this.obstacleArray[i].sprite);
             this.levelFour.removeChild(this.obstacleArray[i].sprite);
         }
-        if (this.levelType == 4)
+        if (this.levelType == 4) {
             this.levelFour.removeChild(this.train.sprite);
+            this.levelFour.removeChild(this.stopLight.sprite);
+        }
         this.carArray = [];
         this.obstacleArray = [];
     }
@@ -2054,6 +2086,10 @@ class Nest {
             this.chicken.stageClear();
             this._sprite.dispatchEvent(this.nestReached);
         }
+    }
+    hideMe() {
+        this._sprite.x = -15;
+        this._sprite.y = -15;
     }
 }
 exports.Nest = Nest;
@@ -2314,6 +2350,42 @@ exports.SportsCar = SportsCar;
 
 /***/ }),
 
+/***/ "./src/StopLight.ts":
+/*!**************************!*\
+  !*** ./src/StopLight.ts ***!
+  \**************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.StopLight = void 0;
+const Constants_1 = __webpack_require__(/*! ./Constants */ "./src/Constants.ts");
+class StopLight {
+    constructor(stage, assetManager, train) {
+        this.stage = stage;
+        this._train = train;
+        this.trainWidth = this._train.sprite.getBounds().width;
+        this.assetManager = assetManager;
+        this._sprite = this.assetManager.getSprite("sprites", "Lights/Go", 10, 350);
+    }
+    get sprite() {
+        return this._sprite;
+    }
+    SwitchStates() {
+        if (this._train.sprite.x > -1250 && this._train.sprite.x < Constants_1.STAGE_WIDTH + this.trainWidth) {
+            this._sprite.gotoAndPlay("Lights/Stop");
+        }
+        else {
+            this._sprite.gotoAndPlay("Lights/Go");
+        }
+    }
+}
+exports.StopLight = StopLight;
+
+
+/***/ }),
+
 /***/ "./src/Toolkit.ts":
 /*!************************!*\
   !*** ./src/Toolkit.ts ***!
@@ -2409,7 +2481,7 @@ class Train {
     update() {
         this._sprite.x = this._sprite.x + this._speed;
         if (this._sprite.x > (Constants_1.STAGE_WIDTH + this.width + 2500)) {
-            this._sprite.x = (-2500 - this.width);
+            this._sprite.x = (-3000 - this.width);
         }
         if ((0, Toolkit_1.boxHit)(this._sprite, this.chicken.sprite)) {
             this.chicken.killMe();
@@ -4873,7 +4945,7 @@ module.exports.formatError = function (err) {
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	(() => {
-/******/ 		__webpack_require__.h = () => ("d8be6e0768038570ffa8")
+/******/ 		__webpack_require__.h = () => ("af9b1a807abd9d8c9ecd")
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/global */
