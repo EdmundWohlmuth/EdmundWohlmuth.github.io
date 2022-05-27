@@ -1213,10 +1213,10 @@ class Chicken {
     killMe() {
         let sprite = this._sprite;
         this._state = Chicken.STATE_DEAD;
-        this._sprite.dispatchEvent(this.lifeDecrement);
         this._deadSprite.x = sprite.x;
         this._deadSprite.y = sprite.y;
         this.stage.addChild(this._deadSprite);
+        this._sprite.dispatchEvent(this.lifeDecrement);
         sprite.x = Constants_1.CHICKEN_START_X;
         sprite.y = Constants_1.CHICKEN_START_Y;
         this._state = Chicken.STATE_IDLE;
@@ -4945,7 +4945,7 @@ module.exports.formatError = function (err) {
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	(() => {
-/******/ 		__webpack_require__.h = () => ("af9b1a807abd9d8c9ecd")
+/******/ 		__webpack_require__.h = () => ("513ead685001b91e7ccc")
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/global */
